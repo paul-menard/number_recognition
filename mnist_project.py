@@ -23,16 +23,26 @@ for images, labels in train_loader:
 class ChiffreNet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layer0 = nn.Flatten()
-        self.layer1 = nn.Linear(in_features=784, out_features=128)
-        self.layer2 = nn.Linear(in_features=128, out_features=10)
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride = 2)
+        )
+        self.flatten = nn.Flatten()
+        self.layer3 = nn.Linear(in_features=784, out_features=10)
         self.relu = nn.ReLU()
 
 
     def forward(self, x):
-        x = self.layer0(x)
-        x = self.relu(self.layer1(x))
+        x = self.layer1(x)
         x = self.layer2(x)
+        x = self.flatten(x)
+        x = self.layer3(x)
         return x
     
 model = ChiffreNet()
@@ -54,31 +64,27 @@ for epoch in range(5):
         optimizer.step()
 
         mean_loss += lost
-    print(mean_loss/(5*64))
+    print(mean_loss/(938))
 
 
-# --- ÉTAPE 5 : ÉVALUATION ---
-print("\n📝 Début du Test...")
-model.eval() # Important : On gèle le modèle (pas d'entraînement)
+
+print("\n Début du Test...")
+model.eval() 
 
 correct_predictions = 0
 total_predictions = 0
 
-with torch.no_grad(): # On désactive le calcul des gradients (économie de RAM)
+with torch.no_grad(): 
     for images, labels in test_loader:
-        # 1. Forward
         outputs = model(images)
-        
-        # 2. Décision (Quel est le chiffre avec le plus haut score ?)
-        # torch.max renvoie (valeur_max, index_max). On veut l'index.
+    
         _, predicted = torch.max(outputs, 1)
         
-        # 3. Comptabilité
         total_predictions += labels.size(0)
         correct_predictions += (predicted == labels).sum().item()
 
 accuracy = (correct_predictions / total_predictions) * 100
-print(f"🏆 Précision Finale : {accuracy:.2f}%")
+print(f" Précision Finale : {accuracy:.2f}%")
 
 
 
